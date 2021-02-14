@@ -1,0 +1,14 @@
+Package: rutils
+Title: A Bunch of R (supposedly) useful functions
+Version: 0.9.42
+Author:
+    person(given = "Adrian",
+           family = "Delmarre",
+           role = c("aut", "cre"),
+           email = "adelmarre@vongo.eu")
+Maintainer: Adrian Delmarre <adelmarre@vongo.eu>
+Description: A bunch of more or less useful functions for every day R programming.
+License: WTFPL
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
