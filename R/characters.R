@@ -95,7 +95,7 @@ slug <- function(x, sep="-") {
 #' fetch_safe("http://www.qwant.com")
 #' fetch_safe("http://www.qwant.comme")
 fetch_safe <- function(url, max_attempts=3, handle=NULL, logger=NULL) {
-	rurl <- encode_spaces(url)
+	rurl <- URLencode(url)
 	done <- F
 	retry_count <- 0
 	result <- NULL

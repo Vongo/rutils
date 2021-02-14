@@ -64,10 +64,8 @@ lines2 <- function(y, x=seq(ncol(y)), ynames="", main="", append=F, xlab="", yla
 #' @return a plot object that represents a stacked area chart
 #' @keywords area stack plotly
 #' @export
-#' @examples
-#' data(iris)
-#' plotly_stacked_area(as.data.table(iris), x="Sepal.Length", y="Sepal.Width", group="Species")
 plotly_stacked_area <- function(dt, x, y, group, xname=NULL, yname=NULL, gname=NULL, title=NULL) {
+	library(plotly)
 	groups <- dt[, .(m=max(get(y), na.rm=TRUE)), .(group=get(group))][order(-m), group]
 	colors <- wesanderson::wes_palette("GrandBudapest2", length(groups), type="continuous")
 	dat <- dt[order(get(x))] %>%
