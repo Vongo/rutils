@@ -140,7 +140,8 @@ lsh <- function(up=FALSE, split=TRUE) {
 	)
 	res <- res[order(-bitsize), ]
 	rownames(res) <- NULL
-	res[, class := sapply(name, function(x) {class(eval(parse(text=x)))})]
+	klass <- rbindlist(lapply(res$name, function(x) {data.table(name=x, class=class(eval(parse(text=x))))}), fill=TRUE)
+	res <- res[klass, on=.(name)]
 	if (split==TRUE) {
 		classes <- res[, .(mb=mean(bitsize)), class][order(-mb), class]
 		for (cl in classes) {
@@ -148,7 +149,7 @@ lsh <- function(up=FALSE, split=TRUE) {
 			base::print.data.frame(res[class==cl, .(name, size)])
 		}
 	} else {
-		base::print.data.frame(res[, .(name, size, class)])
+		base::print.data.frame(res[, .(size[1], class=paste(class, collapse=", ")), name])
 	}
 	invisible(res)
 }
