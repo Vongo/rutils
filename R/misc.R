@@ -139,7 +139,6 @@ lsh <- function(up=FALSE, split=TRUE) {
 		bitsize=bitsize
 	)
 	res <- res[order(-bitsize), ]
-	browser()
 	rownames(res) <- NULL
 	res[, class := sapply(name, function(x) {class(eval(parse(text=x)))})]
 	if (split==TRUE) {
