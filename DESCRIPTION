@@ -1,6 +1,6 @@
 Package: rutils
 Title: A Bunch of R (supposedly) useful functions
-Version: 0.9.42
+Version: 0.9.43
 Author:
     person(given = "Adrian",
            family = "Delmarre",
@@ -11,4 +11,4 @@ Description: A bunch of more or less useful functions for every day R programmin
 License: WTFPL
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

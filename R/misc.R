@@ -1,3 +1,5 @@
+library(data.table)
+
 #' Summary Function
 #'
 #' This function is a shortcut for `summary(as.factor(x))`
@@ -114,16 +116,17 @@ tabler <- function(r, c, scale.by=1, pretty=1) {
 #'
 #' Extends \code{ls()} to associate each object (in current environment) with its (human-readable) size.
 #' @param up ["UsePryr"] \code{TRUE} to use \code{pryr::object_size}, \code{FALSE} to use \code{utils::object.size}
+#' @param split (default=\code{TRUE}) split the results by class
 #' @keywords ls
 #' @seealso ls object.size
 #' @export
 #' @examples
 #' \dontrun{lsh()}
-lsh <- function(up=FALSE) {
+lsh <- function(up=FALSE, split=TRUE) {
 	matches <- c("b", "Kb", "Mb", "Gb", "Tb", "Pb")
 	ob <- ls(env=rlang::caller_env(n=1))
 	bitsize <- sapply(ob, function(o) `if`(up, pryr::object_size, utils::object.size)(get(o, env=rlang::caller_env(n=1))))
-	res <- data.frame(
+	res <- data.table(
 		name=ob,
 		size=sapply(bitsize, function(size) {
 			if (size>0) {
@@ -132,10 +135,21 @@ lsh <- function(up=FALSE) {
 			} else {
 				"O b"
 			}
-		})
+		}),
+		bitsize=bitsize
 	)
 	res <- res[order(-bitsize), ]
+	browser()
 	rownames(res) <- NULL
-	base::print.data.frame(res)
+	res[, class := sapply(name, function(x) {class(eval(parse(text=x)))})]
+	if (split==TRUE) {
+		classes <- res[, .(mb=mean(bitsize)), class][order(-mb), class]
+		for (cl in classes) {
+			message(cl)
+			base::print.data.frame(res[class==cl, .(name, size)])
+		}
+	} else {
+		base::print.data.frame(res[, .(name, size, class)])
+	}
 	invisible(res)
 }
