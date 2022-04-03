@@ -48,7 +48,7 @@ decry <- function(x, key=123) {
 #' @examples
 #' trim(" lorem ipsum	")
 trim <- function(s) {
-	sub("^[  ]+", "", sub("[  ]+$", "", s))
+	sub("^[[:space:]]+", "", sub("[[:space:]]+$", "", s))
 }
 
 #' Title Case (on one word)
