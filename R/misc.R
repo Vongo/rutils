@@ -138,18 +138,77 @@ lsh <- function(up=FALSE, split=TRUE) {
 		}),
 		bitsize=bitsize
 	)
-	res <- res[order(-bitsize), ]
+	res <- res[order(-bitsize), ] |> data.table::as.data.table()
 	rownames(res) <- NULL
-	klass <- rbindlist(lapply(res$name, function(x) {data.table(name=x, class=class(eval(parse(text=x))))}), fill=TRUE)
-	res <- res[klass, on=.(name)]
+	klass <- data.table::rbindlist(lapply(res$name, function(x) {data.table(name=x, class=class(eval(parse(text=x))))}), fill=TRUE)
+	res <- data.table::merge.data.table(res, klass, by="name") |> as.data.table() # DT join wouldn't work
 	if (split==TRUE) {
-		classes <- res[, .(mb=mean(bitsize)), class][order(-mb), class]
+		classes <- res[, .(mb=max(bitsize)), class][order(-mb), class]
 		for (cl in classes) {
 			message(cl)
 			base::print.data.frame(res[class==cl, .(name, size)])
+			cat("\n")
 		}
 	} else {
 		base::print.data.frame(res[, .(size[1], class=paste(class, collapse=", ")), name])
 	}
 	invisible(res)
+}
+
+
+#' Unique Remove-Nas Sort -> URNS
+#'
+#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
+#' @param x vector to clean
+#' @keywords urns unique NA sort
+#' @details default S3 method for `urns`
+#' @seealso urns.numeric urns.character sort unique na.rm
+#' @export
+#' @examples
+#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+urns <- function(x) {
+	stopifnot(is.vector(x))
+	UseMethod("urns")
+}
+
+#' Unique Remove-Nas Sort -> URNS
+#'
+#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
+#' @param x vector to clean
+#' @keywords urns unique NA sort
+#' @details default S3 method for `urns` for class `numeric`
+#' @seealso urns.numeric urns.character sort unique na.rm
+#' @export
+#' @examples
+#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+urns.numeric <- function(x) {
+	suppressWarnings({x |> as.numeric() |> unique() %>% .[!is.na(.)] |> sort()})
+}
+
+#' Unique Remove-Nas Sort -> URNS
+#'
+#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
+#' @param x vector to clean
+#' @keywords urns unique NA sort
+#' @details default S3 method for `urns` for class `character`
+#' @seealso urns.numeric urns.character sort unique na.rm
+#' @export
+#' @examples
+#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+urns.character <- function(x) {
+	suppressWarnings({x |> as.character() |> unique() %>% .[!is.na(.)] |> sort()})
+}
+
+#' Unique Remove-Nas Sort -> URNS
+#'
+#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
+#' @param x vector to clean
+#' @keywords urns unique NA sort
+#' @details default S3 method for `urns` for class `logical`
+#' @seealso urns.numeric urns.character sort unique na.rm
+#' @export
+#' @examples
+#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+urns.logical <- function(x) {
+	suppressWarnings({x |> as.logical() |> unique() %>% .[!is.na(.)] |> sort()})
 }
