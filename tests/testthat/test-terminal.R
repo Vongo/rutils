@@ -10,11 +10,26 @@
 # NULL when there is no terminal, and update_pb() no-ops on a NULL bar.
 
 test_that("ws() returns a single positive numeric width, even without a TTY", {
+  old <- options(width = getOption("width"))  # ws() mutates width; restore after
+  on.exit(options(old), add = TRUE)
   w <- ws()
   expect_true(is.numeric(w))
   expect_length(w, 1)
   expect_false(is.na(w))
   expect_gt(w, 0)
+})
+
+test_that("ws() sets the width option to the width it returns", {
+  old <- options(width = 70)
+  on.exit(options(old), add = TRUE)
+  w <- ws()
+  expect_identical(getOption("width"), as.integer(w))
+})
+
+test_that("ws(ret = FALSE) returns NULL invisibly", {
+  old <- options(width = getOption("width"))
+  on.exit(options(old), add = TRUE)
+  expect_null(ws(ret = FALSE))
 })
 
 test_that("update_pb() no-ops on a NULL progress bar", {
@@ -55,4 +70,16 @@ test_that("update_pb() tolerates a zero-length job (Inf progress)", {
   # tot_iter = 0 makes progress = index/0 = Inf; the bar_nb clamp must tame it.
   pb <- make_fake_pb(0, "pc", "cd")
   expect_no_error(capture.output(update_pb(pb, 1)))
+})
+
+test_that("update_pb() survives a very narrow terminal (geometry clamp)", {
+  # On a real TTY stty reports the actual (wide) width, so force the non-TTY
+  # path: ws() then falls back to getOption("width"), pinned here to R's
+  # minimum (10). bar_width - time_width goes negative, so the max(1L, ...) /
+  # min(bar_nb, bar_width) clamps must keep rep()'s counts non-negative.
+  skip_if(isatty(stdout()), "stty reports the real width on a TTY")
+  old <- options(width = 10)
+  on.exit(options(old), add = TRUE)
+  pb <- make_fake_pb(5, "simple", "cd")
+  expect_no_error(capture.output(for (i in 1:5) update_pb(pb, i)))
 })
