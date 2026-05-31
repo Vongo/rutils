@@ -83,3 +83,13 @@ test_that("update_pb() survives a very narrow terminal (geometry clamp)", {
   pb <- make_fake_pb(5, "simple", "cd")
   expect_no_error(capture.output(for (i in 1:5) update_pb(pb, i)))
 })
+
+test_that("update_pb() survives a non-numeric ws() return (the original crash)", {
+  # The reported bug: a stale ws() returned warning()'s *character* value in a
+  # non-TTY, and update_pb() then computed `terminal_width - time_width` on a
+  # string -> "non-numeric argument to binary operator". The numeric guard in
+  # update_pb() must coerce any non-numeric width before the arithmetic.
+  local_mocked_bindings(ws = function(...) "Inappropriate ioctl for device")
+  pb <- make_fake_pb(5, "simple", "cd")
+  expect_no_error(capture.output(for (i in 1:5) update_pb(pb, i)))
+})
