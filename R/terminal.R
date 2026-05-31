@@ -8,14 +8,19 @@
 #' @examples
 #' \dontrun{ws()}
 ws <- function(ret=TRUE) {
+	# Fallback width for non-interactive / non-TTY contexts (cron, CI, pipes)
+	# where `stty size` fails. getOption("width") is always a positive integer.
+	fallback <- getOption("width", 80L)
 	terminal_width <- if(get_os()=="tux") {
-		tryCatch(as.numeric(strsplit(system('stty size', intern=T), ' ')[[1]])[2], error=function(e) {
-			warning(paste0("Unexpected error: ", e))
-		})
+		tryCatch({
+			sz <- suppressWarnings(system('stty size', intern=TRUE, ignore.stderr=TRUE))
+			w <- as.numeric(strsplit(sz, ' ')[[1]])[2]
+			if (length(w)!=1L || is.na(w) || w<=0) fallback else w
+		}, error=function(e) fallback)
 	} else {
-		stop(paste0("OS not handled"))
+		fallback
 	}
-	if (is.numeric(terminal_width)) {
+	if (is.numeric(terminal_width) && terminal_width>0) {
 		options(width=as.integer(terminal_width))
 	}
 	if (ret) terminal_width
@@ -55,6 +60,9 @@ ws <- function(ret=TRUE) {
 create_pb <- function(nb_iter,
                     bar_style=sample(c("simple","pc"),1),
                     time_style=sample(c("cd","end"),1)) {
+    # No terminal attached (cron, CI, pipe) -> no progress bar. The NULL is
+    # passed straight to update_pb(), which no-ops on a NULL bar.
+    if (!interactive() && !isatty(stdout())) return(invisible(NULL))
     ret <- list()
     ret$dep_time <- Sys.time()
     ret$tot_iter <- nb_iter
@@ -97,9 +105,17 @@ create_pb <- function(nb_iter,
 #'     Sys.sleep(0.5)
 #' }}
 update_pb <- function(pb, index) {
+    # No bar (non-TTY): create_pb() returned NULL, so there is nothing to draw.
+    if (is.null(pb)) return(invisible(NULL))
     terminal_width <- tryCatch(ws(), error=function(e){
 		100
 	})
+    # ws() must yield a positive number; guard against any non-numeric return
+    # (e.g. a stale rutils whose ws() returned a warning string in non-TTY).
+    if (!is.numeric(terminal_width) || length(terminal_width)!=1L ||
+        is.na(terminal_width) || terminal_width<=0) {
+        terminal_width <- 100
+    }
     # Compute progress
     cur_iter <- index
     progress <- index/pb$tot_iter
@@ -118,7 +134,11 @@ update_pb <- function(pb, index) {
     # Prepare bar display
     bar_width <- ifelse(pb$bar_style=="simple", terminal_width-time_width-6,
 		terminal_width-time_width-10)
+    # Keep the geometry sane on very narrow / undetected widths so the rep()
+    # calls below never receive a negative count.
+    bar_width <- max(1L, bar_width)
     bar_nb <- floor(progress*bar_width)
+    bar_nb <- max(0L, min(bar_nb, bar_width))
 
     bar <- if (pb$bar_style == "simple")
         paste("|",paste(rep("=",bar_nb),collapse=""),
