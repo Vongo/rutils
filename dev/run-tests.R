@@ -19,8 +19,8 @@ n_pass <- 0L; n_fail <- 0L; n_err <- 0L; n_skip <- 0L; n_warn <- 0L
 for (test in res) {
   for (exp in test$results) {
     if (inherits(exp, "expectation_success"))      n_pass <- n_pass + 1L
-    else if (inherits(exp, "expectation_failure"))  { n_fail <- n_fail + 1L; bad <- TRUE }
-    else if (inherits(exp, "expectation_error"))    { n_err  <- n_err  + 1L; bad <- TRUE }
+    else if (inherits(exp, "expectation_failure"))  n_fail <- n_fail + 1L
+    else if (inherits(exp, "expectation_error"))    n_err  <- n_err  + 1L
     else if (inherits(exp, "expectation_skip"))     n_skip <- n_skip + 1L
     else if (inherits(exp, "expectation_warning"))  n_warn <- n_warn + 1L
     else next

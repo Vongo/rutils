@@ -14,7 +14,7 @@ bucket(v, ncut = 10, round.clever = FALSE)
 \item{round.clever}{should values of v be rounded}
 }
 \value{
-a numeric vector where each value represents a class/bucket
+an integer vector where each value represents a class/bucket
 }
 \description{
 Associates each value of a numeric input vector to a percentile-based bucket.

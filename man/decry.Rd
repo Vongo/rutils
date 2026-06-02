@@ -28,4 +28,5 @@ print(decry(a, 1234))
 cry
 }
 \keyword{cipher}
-\keyword{encryption}
+\keyword{obfuscation}
+\keyword{substitution}

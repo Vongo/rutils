@@ -43,12 +43,46 @@ test_that("titlecase_one returns NA for NA input, not 'NANA'", {
 })
 
 # ---- fetch_safe ----------------------------------------------------------
-test_that("fetch_safe warns and returns NULL instead of failing silently (logger=NULL)", {
-  expect_warning(res <- fetch_safe("http://example.com", max_attempts = 0), regexp = "Failed to fetch")
-  expect_null(res)
+test_that("fetch_safe rejects a non-positive max_attempts", {
+  expect_error(fetch_safe("http://example.com", max_attempts = 0), "positive")
 })
 
 test_that("fetch_safe surfaces transport errors rather than returning NULL silently", {
   expect_warning(res <- fetch_safe("http://localhost:1/", max_attempts = 1, backoff = 0))
   expect_null(res)
+})
+
+test_that("fetch_safe rejects HTTP >= 400 without retrying and warns once", {
+  calls <- 0L
+  testthat::with_mocked_bindings(
+    {
+      expect_warning(res <- fetch_safe("http://x", max_attempts = 3, backoff = 0), "HTTP 503")
+      expect_null(res)
+    },
+    curl_fetch_memory = function(url, handle = NULL) { calls <<- calls + 1L; list(status_code = 503L) },
+    .package = "curl"
+  )
+  expect_equal(calls, 1L)   # deterministic HTTP error: no retry
+})
+
+test_that("fetch_safe returns a 2xx response unchanged", {
+  testthat::with_mocked_bindings(
+    {
+      res <- fetch_safe("http://x", backoff = 0)
+      expect_equal(res$status_code, 200L)
+    },
+    curl_fetch_memory = function(url, handle = NULL) list(status_code = 200L, content = "ok"),
+    .package = "curl"
+  )
+})
+
+test_that("fetch_safe routes failures to a supplied logger instead of warning()", {
+  testthat::with_mocked_bindings(
+    {
+      expect_no_warning(res <- fetch_safe("http://x", max_attempts = 1, backoff = 0, logger = "fetch_test"))
+      expect_null(res)
+    },
+    curl_fetch_memory = function(url, handle = NULL) stop("boom"),
+    .package = "curl"
+  )
 })

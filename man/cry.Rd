@@ -30,4 +30,5 @@ print(decry(a, 1234))
 decry
 }
 \keyword{cipher}
-\keyword{encryption}
+\keyword{obfuscation}
+\keyword{substitution}

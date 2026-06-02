@@ -27,7 +27,7 @@ symbols <- c(letters, 0:9, toupper(letters), strsplit("_ ./!,;:?", "")[[1]])
 #' @param x character to obfuscate
 #' @param key random seed
 #' @return a character string, the same length as x, but non-human readable
-#' @keywords encryption cipher
+#' @keywords obfuscation cipher substitution
 #' @seealso decry
 #' @export
 #' @examples
@@ -47,7 +47,7 @@ cry <- function(x, key=123) {
 #' @param x character to de-obfuscate
 #' @param key random seed that was used with \code{cry}
 #' @return a character string, the same length as x, that should be human-readable if you used the right key.
-#' @keywords encryption cipher
+#' @keywords obfuscation cipher substitution
 #' @seealso cry
 #' @export
 #' @examples
@@ -115,7 +115,9 @@ slug <- function(x, sep="-") {
 #' @param max_attempts maximum number of attempts (transport errors are retried)
 #' @param handle `curl::handle` to add to the connection
 #' @param logger your custom logger if you want to keep track of potential warnings or errors
-#' @param backoff base seconds to sleep between retries (sleep = backoff * attempt); 0 disables
+#' @param backoff base seconds slept after a failed transport attempt; the wait grows
+#'   linearly (backoff * attempt_number) and there is no sleep after the final attempt.
+#'   HTTP errors (>= 400) are not retried. 0 disables sleeping.
 #' @return a list that represents the result of the fetch (with headers and content still binarized),
 #' 		or NULL if `url` couldn't be fetched successfully in the specified number of attempts.
 #' @keywords curl_fetch_memory curl fetch
@@ -127,6 +129,9 @@ slug <- function(x, sep="-") {
 #' fetch_safe("http://www.qwant.comme")
 #' }
 fetch_safe <- function(url, max_attempts=3, handle=NULL, logger=NULL, backoff=0.5) {
+	max_attempts <- as.integer(max_attempts)
+	if (is.na(max_attempts) || max_attempts < 1L) stop("fetch_safe(): max_attempts must be a positive integer.")
+	if (!is.numeric(backoff) || length(backoff) != 1L || is.na(backoff) || backoff < 0) stop("fetch_safe(): backoff must be a non-negative number.")
 	emit <- function(level, fmt, ...) {
 		msg <- sprintf(fmt, ...)
 		if (!is.null(logger)) {
@@ -151,9 +156,9 @@ fetch_safe <- function(url, max_attempts=3, handle=NULL, logger=NULL, backoff=0.
 			if (retry_count < max_attempts && backoff > 0) Sys.sleep(backoff * retry_count)
 			next
 		}
-		if (fetched$status_code >= 400L) {       # HTTP errors are deterministic: do not retry
+		if (fetched$status_code >= 400L) {       # HTTP errors are deterministic: don't retry, don't double-signal
 			emit("warn", "HTTP %d while fetching [%s].", fetched$status_code, rurl)
-			break
+			return(NULL)
 		}
 		result <- fetched
 	}

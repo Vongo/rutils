@@ -12,10 +12,10 @@ bucket2(
 \arguments{
 \item{v}{input numeric vector}
 
-\item{splits}{should values of v be rounded}
+\item{splits}{sorted numeric thresholds delimiting the buckets (defaults to the deciles of `v`)}
 }
 \value{
-a numeric vector where each value represents a class/bucket
+an integer vector where each value represents a class/bucket
 }
 \description{
 Associates each value of a numeric input vector to a threshold-based bucket.

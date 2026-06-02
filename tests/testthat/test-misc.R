@@ -27,6 +27,27 @@ test_that("lsh works when called inside a function (caller-environment scoping)"
 test_that("lsh handles an empty environment without error", {
   g <- function() lsh(split = FALSE)
   out <- NULL
-  suppressMessages(invisible(capture.output(out <- g())))
+  expect_silent(suppressMessages(invisible(capture.output(out <- g()))))
   expect_equal(nrow(out), 0L)
+})
+
+test_that("lsh reports the first class for multi-class objects", {
+  f <- function() { dt <- data.table::data.table(a = 1); lsh(split = FALSE) }
+  out <- NULL
+  suppressMessages(invisible(capture.output(out <- f())))
+  expect_equal(out[name == "dt", class], "data.table")
+})
+
+test_that("lsh(up=TRUE) errors cleanly when pryr is unavailable", {
+  skip_if(requireNamespace("pryr", quietly = TRUE))
+  f <- function() { x <- 1; lsh(up = TRUE) }
+  expect_error(f(), "pryr")
+})
+
+test_that("urns.default handles POSIXct (sorted, NA dropped)", {
+  t <- as.POSIXct(c("2020-01-02", "2020-01-01", "2020-01-01", NA), tz = "UTC")
+  res <- urns(t)
+  expect_length(res, 2)
+  expect_false(anyNA(res))
+  expect_true(res[1] < res[2])
 })

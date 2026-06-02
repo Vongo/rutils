@@ -60,13 +60,21 @@ create_pb <- function(nb_iter,
     ret$bar_style <- match.arg(bar_style)   # deterministic default; no sample() / RNG side effect
     ret$time_style <- match.arg(time_style)
     # Resolve the terminal width ONCE here and cache it, so update_pb() doesn't
-    # spawn an `stty size` subprocess on every iteration.
-    detected <- if (!is.null(width)) width else tryCatch(ws(ret=TRUE), error=function(e) NA_integer_)
-    if (is.null(detected) || !is.numeric(detected) || is.na(detected)) {
-        if (is.null(width)) message("Can't detect terminal width, defaulting to 100.")
-        detected <- 100L
+    # spawn an `stty size` subprocess on every iteration. An explicitly supplied
+    # width is validated loudly; only auto-detection failure falls back quietly.
+    if (!is.null(width)) {
+        if (!is.numeric(width) || length(width) != 1L || is.na(width) || width < 1) {
+            stop("create_pb(): 'width' must be a single positive number.")
+        }
+        ret$width <- as.integer(width)
+    } else {
+        detected <- tryCatch(ws(ret=TRUE), error=function(e) NA_integer_)
+        if (is.null(detected) || !is.numeric(detected) || is.na(detected)) {
+            message("Can't detect terminal width, defaulting to 100.")
+            detected <- 100L
+        }
+        ret$width <- as.integer(detected)
     }
-    ret$width <- as.integer(detected)
     ret
 }
 

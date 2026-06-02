@@ -46,7 +46,7 @@ urns(sample(letters, 100, replace=TRUE))
 urns(c(TRUE, NA, FALSE, TRUE))
 }
 \seealso{
-\code{\link{urns.numeric}} \code{\link{urns.default}} sort unique
+\code{\link[base]{sort}}, \code{\link[base]{unique}}
 }
 \keyword{NA}
 \keyword{sort}

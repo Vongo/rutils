@@ -129,6 +129,9 @@ lsh <- function(up=FALSE, split=TRUE) {
 	matches <- c("b", "Kb", "Mb", "Gb", "Tb", "Pb")
 	env <- rlang::caller_env(n=1)
 	obj <- ls(envir=env)
+	if (length(obj) == 0L) {   # nothing to list: avoid an empty-max() warning downstream
+		return(invisible(data.table::data.table(name=character(0), size=character(0), bitsize=numeric(0), class=character(0))))
+	}
 	sizer <- if (up) {
 		if (!requireNamespace("pryr", quietly=TRUE)) stop("lsh(up=TRUE) requires the 'pryr' package.")
 		pryr::object_size
@@ -171,7 +174,7 @@ lsh <- function(up=FALSE, split=TRUE) {
 #' default that handles any other sortable atomic type (factor, Date, ...).
 #' @param x vector to clean
 #' @keywords urns unique NA sort
-#' @seealso \code{\link{urns.numeric}} \code{\link{urns.default}} sort unique
+#' @seealso \code{\link[base]{sort}}, \code{\link[base]{unique}}
 #' @export
 #' @examples
 #' urns(c(3, 1, 2, 1, NA))

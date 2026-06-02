@@ -69,6 +69,11 @@ r       FALSE  TRUE
 which is a convenient relative equivalent of
 ```
 > table(sample(c(TRUE, FALSE), 100, rep=TRUE), c(rep(TRUE, 50), rep(FALSE, 50)))
+
+        FALSE TRUE
+  FALSE    23   20
+  TRUE     27   30
+```
 * __round_clever__:
 To make more human readable rounds
 ```

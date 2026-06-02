@@ -15,7 +15,9 @@ fetch_safe(url, max_attempts = 3, handle = NULL, logger = NULL, backoff = 0.5)
 
 \item{logger}{your custom logger if you want to keep track of potential warnings or errors}
 
-\item{backoff}{base seconds to sleep between retries (sleep = backoff * attempt); 0 disables}
+\item{backoff}{base seconds slept after a failed transport attempt; the wait grows
+linearly (backoff * attempt_number) and there is no sleep after the final attempt.
+HTTP errors (>= 400) are not retried. 0 disables sleeping.}
 }
 \value{
 a list that represents the result of the fetch (with headers and content still binarized),
