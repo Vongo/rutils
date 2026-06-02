@@ -1,5 +1,3 @@
-library(data.table)
-
 #' Summary Function
 #'
 #' This function is a shortcut for `summary(as.factor(x))`

@@ -65,20 +65,22 @@ lines2 <- function(y, x=seq(ncol(y)), ynames="", main="", append=F, xlab="", yla
 #' @keywords area stack plotly
 #' @export
 plotly_stacked_area <- function(dt, x, y, group, xname=NULL, yname=NULL, gname=NULL, title=NULL) {
-	library(plotly)
+	if (!requireNamespace("plotly", quietly=TRUE) || !requireNamespace("wesanderson", quietly=TRUE)) {
+		stop("plotly_stacked_area() requires the 'plotly' and 'wesanderson' packages.")
+	}
 	groups <- dt[, .(m=max(get(y), na.rm=TRUE)), .(group=get(group))][order(-m), group]
 	colors <- wesanderson::wes_palette("GrandBudapest2", length(groups), type="continuous")
 	dat <- dt[order(get(x))] %>%
 		.[, .(x=get(x), y=get(y), group=get(group))] %>%
 		dcast(x~group, fun.aggregate=sum, value.var="y", fill=NA)
-	p <- dat %>% plot_ly(x=~x, y=~get(groups[1]), name=groups[1], type="scatter", mode="none", stackgroup="one", fillcolor=colors[1])
+	p <- dat %>% plotly::plot_ly(x=~x, y=~get(groups[1]), name=groups[1], type="scatter", mode="none", stackgroup="one", fillcolor=colors[1])
 	for (ig in seq(2, length(groups))) {
-		p %<>% add_trace(data=dat, x=~x, y=dat[[groups[ig]]], name=groups[ig], fillcolor=colors[ig])
+		p %<>% plotly::add_trace(data=dat, x=~x, y=dat[[groups[ig]]], name=groups[ig], fillcolor=colors[ig])
 	}
 	xname <- `if`(is.null(xname), x, xname)
 	yname <- `if`(is.null(yname), y, yname)
 	gname <- `if`(is.null(gname), group, gname)
-	p %>% layout(title = `if`(is.null(title), paste0(yname, "~", xname, " grouped by ", gname), title),
+	p %>% plotly::layout(title = `if`(is.null(title), paste0(yname, "~", xname, " grouped by ", gname), title),
 		xaxis=list(title=xname, showgrid=FALSE),
 		yaxis=list(title=yname, showgrid=FALSE)
 	)
