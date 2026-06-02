@@ -18,7 +18,9 @@ This is useful for instance when some objects of one package were masked and you
 This function requires to have devtools installed.
 }
 \examples{
+\dontrun{
 reload_package("rutils")
+}
 }
 \keyword{package}
 \keyword{reload}

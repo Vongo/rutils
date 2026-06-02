@@ -43,8 +43,13 @@ safr <- function(vector, pretty=c(0,1,2)[1]) {
 #' @keywords reload package
 #' @export
 #' @examples
+#' \dontrun{
 #' reload_package("rutils")
+#' }
 reload_package <- function(package_name) {
+	if (!requireNamespace("devtools", quietly=TRUE) || !requireNamespace("pkgload", quietly=TRUE)) {
+		stop("reload_package() requires the 'devtools' and 'pkgload' packages.")
+	}
 	devtools::reload(pkgload::inst(package_name))
 }
 

@@ -11,3 +11,7 @@
 #' @importFrom grDevices rainbow
 #' @importFrom graphics legend lines pie plot
 "_PACKAGE"
+
+# Names used inside data.table [ ] / magrittr `.` expressions; declared so R CMD
+# check doesn't flag them as undefined globals.
+utils::globalVariables(c(".", "m", "mb", "name", "size"))

@@ -28,8 +28,10 @@ signals failure (via the supplied \code{logger} or a \code{warning()}) instead
 of silently returning \code{NULL}.
 }
 \examples{
+\dontrun{
 fetch_safe("http://www.qwant.com")
 fetch_safe("http://www.qwant.comme")
+}
 }
 \seealso{
 curl::curl_fetch_memory

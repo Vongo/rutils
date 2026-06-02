@@ -122,8 +122,10 @@ slug <- function(x, sep="-") {
 #' @seealso curl::curl_fetch_memory
 #' @export
 #' @examples
+#' \dontrun{
 #' fetch_safe("http://www.qwant.com")
 #' fetch_safe("http://www.qwant.comme")
+#' }
 fetch_safe <- function(url, max_attempts=3, handle=NULL, logger=NULL, backoff=0.5) {
 	emit <- function(level, fmt, ...) {
 		msg <- sprintf(fmt, ...)
