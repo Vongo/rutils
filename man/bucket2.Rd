@@ -4,7 +4,10 @@
 \alias{bucket2}
 \title{Threshold-based bucketing function}
 \usage{
-bucket2(v, splits = quantile(v, probs = seq(0, 1, by = 1/10)[2:(10 + 1)]))
+bucket2(
+  v,
+  splits = quantile(v, probs = seq(0, 1, by = 1/10)[2:(10 + 1)], na.rm = TRUE)
+)
 }
 \arguments{
 \item{v}{input numeric vector}

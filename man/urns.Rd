@@ -2,24 +2,51 @@
 % Please edit documentation in R/misc.R
 \name{urns}
 \alias{urns}
+\alias{urns.default}
+\alias{urns.numeric}
+\alias{urns.character}
+\alias{urns.logical}
 \title{Unique Remove-Nas Sort -> URNS}
 \usage{
 urns(x)
+
+\method{urns}{default}(x)
+
+\method{urns}{numeric}(x)
+
+\method{urns}{character}(x)
+
+\method{urns}{logical}(x)
 }
 \arguments{
 \item{x}{vector to clean}
 }
 \description{
-Cleans a vector (removes NAs & duplicates, sorts values ascending).
+Cleans a vector (removes NAs & duplicates, sorts values ascending). This is
+the S3 generic; methods exist for numeric, character and logical, and a
+default that handles any other sortable atomic type (factor, Date, ...).
 }
-\details{
-default S3 method for `urns`
-}
+\section{Methods (by class)}{
+\itemize{
+\item \code{urns(default)}: default method; sorts unique non-NA values of any atomic type
+(factor, Date, POSIXct, ...). \code{sort()} drops NA values.
+
+\item \code{urns(numeric)}: numeric method; coerces to numeric before cleaning
+
+\item \code{urns(character)}: character method; coerces to character before cleaning
+
+\item \code{urns(logical)}: logical method; coerces to logical before cleaning
+
+}}
 \examples{
-\dontrun{urns(sample(letters, 100, replace=TRUE))}
+urns(c(3, 1, 2, 1, NA))
+urns(as.Date(c("2020-01-02", "2020-01-01", NA)))
+urns(c("3", "1", "2", "x"))
+urns(sample(letters, 100, replace=TRUE))
+urns(c(TRUE, NA, FALSE, TRUE))
 }
 \seealso{
-urns.numeric urns.character sort unique na.rm
+\code{\link{urns.numeric}} \code{\link{urns.default}} sort unique
 }
 \keyword{NA}
 \keyword{sort}

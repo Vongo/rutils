@@ -4,23 +4,28 @@
 \alias{fetch_safe}
 \title{Fetch safe}
 \usage{
-fetch_safe(url, max_attempts = 3, handle = NULL, logger = NULL)
+fetch_safe(url, max_attempts = 3, handle = NULL, logger = NULL, backoff = 0.5)
 }
 \arguments{
 \item{url}{url to fetch}
 
-\item{max_attempts}{numeric that represents the maximum number of attempts}
+\item{max_attempts}{maximum number of attempts (transport errors are retried)}
 
 \item{handle}{`curl::handle` to add to the connection}
 
 \item{logger}{your custom logger if you want to keep track of potential warnings or errors}
+
+\item{backoff}{base seconds to sleep between retries (sleep = backoff * attempt); 0 disables}
 }
 \value{
 a list that represents the result of the fetch (with headers and content still binarized),
-		or NULL if `url` couldn't be fetched in the specified number of attempts.
+		or NULL if `url` couldn't be fetched successfully in the specified number of attempts.
 }
 \description{
-Simple wrapper around `curl::curl_fetch_memory` with a few safeguards
+Wrapper around \code{curl::curl_fetch_memory} that retries transport failures
+with linear backoff, rejects HTTP error responses (status >= 400), and always
+signals failure (via the supplied \code{logger} or a \code{warning()}) instead
+of silently returning \code{NULL}.
 }
 \examples{
 fetch_safe("http://www.qwant.com")

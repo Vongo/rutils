@@ -9,7 +9,10 @@
 #' @examples
 #' na.false(FALSE) == na.false(NA)
 na.false <- function(x) {
-	ifelse(is.na(x) | length(x)==0, FALSE, x)
+	if (length(x) == 0L) return(FALSE)
+	x <- as.logical(x)
+	x[is.na(x)] <- FALSE
+	x
 }
 
 #' Logical evaluation that treats NA as TRUE
@@ -23,7 +26,10 @@ na.false <- function(x) {
 #' @examples
 #' na.true(TRUE) == na.true(NA)
 na.true <- function(x) {
-	ifelse(is.na(x) | length(x)==0, TRUE, x)
+	if (length(x) == 0L) return(TRUE)
+	x <- as.logical(x)
+	x[is.na(x)] <- TRUE
+	x
 }
 
 #' NOT IN function

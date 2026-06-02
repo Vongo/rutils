@@ -2,20 +2,21 @@
 % Please edit documentation in R/characters.R
 \name{decry}
 \alias{decry}
-\title{Naive decryption function}
+\title{Naive de-obfuscation function}
 \usage{
 decry(x, key = 123)
 }
 \arguments{
-\item{x}{character to decrypt}
+\item{x}{character to de-obfuscate}
 
-\item{key}{random seed that was used to encrypt}
+\item{key}{random seed that was used with \code{cry}}
 }
 \value{
-a character string, the same length as x, that should be human-readable if you did it right.
+a character string, the same length as x, that should be human-readable if you used the right key.
 }
 \description{
-Naive bijective decryption function
+Reverses \code{\link{cry}} for a given key. See \code{cry} for the security
+caveats: this is obfuscation, not encryption.
 }
 \examples{
 a <- cry("Love is in the air", 1234)

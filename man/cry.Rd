@@ -2,12 +2,12 @@
 % Please edit documentation in R/characters.R
 \name{cry}
 \alias{cry}
-\title{Naive encryption function}
+\title{Naive obfuscation function}
 \usage{
 cry(x, key = 123)
 }
 \arguments{
-\item{x}{character to encrypt}
+\item{x}{character to obfuscate}
 
 \item{key}{random seed}
 }
@@ -15,7 +15,10 @@ cry(x, key = 123)
 a character string, the same length as x, but non-human readable
 }
 \description{
-Naive bijective encryption function
+Naive bijective (monoalphabetic substitution) obfuscation. This is NOT
+cryptographically secure: it is a trivially breakable substitution over a
+fixed alphabet, and any character outside that alphabet passes through
+unchanged. Use it for light obfuscation only, never to protect secrets.
 }
 \examples{
 a <- cry("Love is in the air", 1234)

@@ -4,7 +4,7 @@
 \alias{bucket}
 \title{Percentile-based bucketing function}
 \usage{
-bucket(v, ncut = 10, round.clever = F)
+bucket(v, ncut = 10, round.clever = FALSE)
 }
 \arguments{
 \item{v}{input numeric vector}

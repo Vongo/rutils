@@ -122,33 +122,38 @@ tabler <- function(r, c, scale.by=1, pretty=1) {
 #' \dontrun{lsh()}
 lsh <- function(up=FALSE, split=TRUE) {
 	matches <- c("b", "Kb", "Mb", "Gb", "Tb", "Pb")
-	ob <- ls(env=rlang::caller_env(n=1))
-	bitsize <- sapply(ob, function(o) `if`(up, pryr::object_size, utils::object.size)(get(o, env=rlang::caller_env(n=1))))
-	res <- data.table(
-		name=ob,
-		size=sapply(bitsize, function(size) {
-			if (size>0) {
-				coeff <- log10(size) %/% 3
-				paste(round(size/(10^(coeff*3)),2), matches[coeff + 1])
-			} else {
-				"O b"
-			}
-		}),
-		bitsize=bitsize
-	)
-	res <- res[order(-bitsize), ] |> data.table::as.data.table()
-	rownames(res) <- NULL
-	klass <- data.table::rbindlist(lapply(res$name, function(x) {data.table(name=x, class=class(eval(parse(text=x))))}), fill=TRUE)
-	res <- data.table::merge.data.table(res, klass, by="name") |> as.data.table() # DT join wouldn't work
-	if (split==TRUE) {
-		classes <- res[, .(mb=max(bitsize)), class][order(-mb), class]
-		for (cl in classes) {
+	env <- rlang::caller_env(n=1)
+	obj <- ls(envir=env)
+	sizer <- if (up) {
+		if (!requireNamespace("pryr", quietly=TRUE)) stop("lsh(up=TRUE) requires the 'pryr' package.")
+		pryr::object_size
+	} else {
+		utils::object.size
+	}
+	# Resolve each object once in the CALLER's environment, then derive both its
+	# size and its class from that value. The previous version read the size from
+	# the caller but the class via eval(parse(text=name)) in lsh's own frame,
+	# which failed for any object not visible at top level (and re-ran user code).
+	values <- lapply(obj, get, envir=env)
+	bitsize <- vapply(values, function(v) as.numeric(sizer(v)), numeric(1))
+	human <- vapply(bitsize, function(size) {
+		if (size > 0) {
+			coeff <- floor(log10(size) / 3)
+			paste(round(size / (10^(coeff*3)), 2), matches[coeff + 1])
+		} else {
+			"0 b"
+		}
+	}, character(1))
+	klass <- vapply(values, function(v) class(v)[1], character(1))
+	res <- data.table::data.table(name=obj, size=human, bitsize=bitsize, class=klass)[order(-bitsize)]
+	if (split) {
+		for (cl in res[, .(mb=max(bitsize)), by=class][order(-mb), class]) {
 			message(cl)
 			base::print.data.frame(res[class==cl, .(name, size)])
 			cat("\n")
 		}
 	} else {
-		base::print.data.frame(res[, .(size[1], class=paste(class, collapse=", ")), name])
+		base::print.data.frame(res[, .(name, size, class)])
 	}
 	invisible(res)
 }
@@ -156,57 +161,48 @@ lsh <- function(up=FALSE, split=TRUE) {
 
 #' Unique Remove-Nas Sort -> URNS
 #'
-#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
+#' Cleans a vector (removes NAs & duplicates, sorts values ascending). This is
+#' the S3 generic; methods exist for numeric, character and logical, and a
+#' default that handles any other sortable atomic type (factor, Date, ...).
 #' @param x vector to clean
 #' @keywords urns unique NA sort
-#' @details default S3 method for `urns`
-#' @seealso urns.numeric urns.character sort unique na.rm
+#' @seealso \code{\link{urns.numeric}} \code{\link{urns.default}} sort unique
 #' @export
 #' @examples
-#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+#' urns(c(3, 1, 2, 1, NA))
 urns <- function(x) {
-	stopifnot(is.vector(x))
 	UseMethod("urns")
 }
 
-#' Unique Remove-Nas Sort -> URNS
-#'
-#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
-#' @param x vector to clean
-#' @keywords urns unique NA sort
-#' @details default S3 method for `urns` for class `numeric`
-#' @seealso urns.numeric urns.character sort unique na.rm
+#' @describeIn urns default method; sorts unique non-NA values of any atomic type
+#'   (factor, Date, POSIXct, ...). \code{sort()} drops NA values.
 #' @export
 #' @examples
-#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+#' urns(as.Date(c("2020-01-02", "2020-01-01", NA)))
+urns.default <- function(x) {
+	sort(unique(x))
+}
+
+#' @describeIn urns numeric method; coerces to numeric before cleaning
+#' @export
+#' @examples
+#' urns(c("3", "1", "2", "x"))
 urns.numeric <- function(x) {
-	suppressWarnings({x |> as.numeric() |> unique() %>% .[!is.na(.)] |> sort()})
+	suppressWarnings(sort(unique(as.numeric(x))))
 }
 
-#' Unique Remove-Nas Sort -> URNS
-#'
-#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
-#' @param x vector to clean
-#' @keywords urns unique NA sort
-#' @details default S3 method for `urns` for class `character`
-#' @seealso urns.numeric urns.character sort unique na.rm
+#' @describeIn urns character method; coerces to character before cleaning
 #' @export
 #' @examples
-#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+#' urns(sample(letters, 100, replace=TRUE))
 urns.character <- function(x) {
-	suppressWarnings({x |> as.character() |> unique() %>% .[!is.na(.)] |> sort()})
+	sort(unique(as.character(x)))
 }
 
-#' Unique Remove-Nas Sort -> URNS
-#'
-#' Cleans a vector (removes NAs & duplicates, sorts values ascending).
-#' @param x vector to clean
-#' @keywords urns unique NA sort
-#' @details default S3 method for `urns` for class `logical`
-#' @seealso urns.numeric urns.character sort unique na.rm
+#' @describeIn urns logical method; coerces to logical before cleaning
 #' @export
 #' @examples
-#' \dontrun{urns(sample(letters, 100, replace=TRUE))}
+#' urns(c(TRUE, NA, FALSE, TRUE))
 urns.logical <- function(x) {
-	suppressWarnings({x |> as.logical() |> unique() %>% .[!is.na(.)] |> sort()})
+	sort(unique(as.logical(x)))
 }
