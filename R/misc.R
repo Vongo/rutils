@@ -191,7 +191,7 @@ urns.default <- function(x) {
 #' @describeIn urns numeric method; coerces to numeric before cleaning
 #' @export
 #' @examples
-#' urns(c("3", "1", "2", "x"))
+#' urns(c(3, 1, 2, NA, 1))
 urns.numeric <- function(x) {
 	suppressWarnings(sort(unique(as.numeric(x))))
 }

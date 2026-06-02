@@ -7,10 +7,11 @@
 na.false(x)
 }
 \arguments{
-\item{x}{logical expression to evaluate}
+\item{x}{logical expression to evaluate (coerced to logical; names preserved)}
 }
 \value{
-TRUE if x is TRUE, FALSE if it is FALSE or NA
+a logical vector: TRUE where x is TRUE, FALSE where it is FALSE or NA.
+  Zero-length input returns the scalar FALSE.
 }
 \description{
 Binarily evaluates a logical expression with NA giving FALSE

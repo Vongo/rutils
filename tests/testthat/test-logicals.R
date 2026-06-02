@@ -19,3 +19,8 @@ test_that("non-logical input is coerced to logical, honouring the documented con
   expect_identical(na.false(c(1, 0, NA)), c(TRUE, FALSE, FALSE))
   expect_type(na.false(c(1, 0, NA)), "logical")
 })
+
+test_that("na.false/na.true preserve names", {
+  expect_equal(na.false(c(a = TRUE, b = NA, c = FALSE)), c(a = TRUE, b = FALSE, c = FALSE))
+  expect_equal(na.true(c(a = TRUE, b = NA, c = FALSE)), c(a = TRUE, b = TRUE, c = FALSE))
+})

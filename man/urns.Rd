@@ -41,7 +41,7 @@ default that handles any other sortable atomic type (factor, Date, ...).
 \examples{
 urns(c(3, 1, 2, 1, NA))
 urns(as.Date(c("2020-01-02", "2020-01-01", NA)))
-urns(c("3", "1", "2", "x"))
+urns(c(3, 1, 2, NA, 1))
 urns(sample(letters, 100, replace=TRUE))
 urns(c(TRUE, NA, FALSE, TRUE))
 }

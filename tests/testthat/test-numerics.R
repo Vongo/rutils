@@ -48,6 +48,11 @@ test_that("bucket2 does not crash on NA", {
   expect_silent(bucket2(c(1, 2, NA, 4)))
 })
 
+test_that("bucket/bucket2 return all-NA for all-NA input without error", {
+  expect_equal(bucket(c(NA, NA, NA), 5), rep(NA_integer_, 3))
+  expect_equal(bucket2(c(NA_real_, NA_real_)), rep(NA_integer_, 2))
+})
+
 test_that("bucket with round.clever rounds integer splits instead of producing NA buckets", {
   v <- as.numeric(0:9)
   out <- bucket(v, 5, round.clever = TRUE)

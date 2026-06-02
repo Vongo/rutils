@@ -36,6 +36,7 @@ round_clever <- function(x) {
 #' @examples
 #' bucket(rnorm(100, 100, 25), 10, TRUE)
 bucket <- function(v, ncut=10, round.clever=FALSE) {
+	if (all(is.na(v))) return(rep(NA_integer_, length(v)))
 	splits <- quantile(v, probs=seq(0, 1, by=1/ncut)[2:(ncut+1)], na.rm=TRUE)
 	if (round.clever) {
 		splits <- round_clever(splits)
@@ -55,6 +56,7 @@ bucket <- function(v, ncut=10, round.clever=FALSE) {
 #' @examples
 #' bucket2(rnorm(100, 100, 25), c(50, 75, 100, 125, 150))
 bucket2 <- function(v, splits=quantile(v, probs=seq(0, 1, by=1/10)[2:(10+1)], na.rm=TRUE)) {
+	if (all(is.na(v)) || all(is.na(splits))) return(rep(NA_integer_, length(v)))
 	pmin(findInterval(v, splits) + 1L, length(splits) + 1L)
 }
 

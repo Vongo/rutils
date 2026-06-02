@@ -1,8 +1,9 @@
 #' Logical evaluation that treats NA as FALSE
 #'
 #' Binarily evaluates a logical expression with NA giving FALSE
-#' @param x logical expression to evaluate
-#' @return TRUE if x is TRUE, FALSE if it is FALSE or NA
+#' @param x logical expression to evaluate (coerced to logical; names preserved)
+#' @return a logical vector: TRUE where x is TRUE, FALSE where it is FALSE or NA.
+#'   Zero-length input returns the scalar FALSE.
 #' @keywords NA
 #' @seealso na.true
 #' @export
@@ -10,16 +11,19 @@
 #' na.false(FALSE) == na.false(NA)
 na.false <- function(x) {
 	if (length(x) == 0L) return(FALSE)
+	nm <- names(x)
 	x <- as.logical(x)
 	x[is.na(x)] <- FALSE
+	names(x) <- nm
 	x
 }
 
 #' Logical evaluation that treats NA as TRUE
 #'
 #' Binarily evaluates a logical expression with NA giving TRUE
-#' @param x logical expression to evaluate
-#' @return FALSE if x is FALSE, TRUE if it is TRUE or NA
+#' @param x logical expression to evaluate (coerced to logical; names preserved)
+#' @return a logical vector: FALSE where x is FALSE, TRUE where it is TRUE or NA.
+#'   Zero-length input returns the scalar TRUE.
 #' @keywords NA
 #' @seealso na.false
 #' @export
@@ -27,8 +31,10 @@ na.false <- function(x) {
 #' na.true(TRUE) == na.true(NA)
 na.true <- function(x) {
 	if (length(x) == 0L) return(TRUE)
+	nm <- names(x)
 	x <- as.logical(x)
 	x[is.na(x)] <- TRUE
+	names(x) <- nm
 	x
 }
 
