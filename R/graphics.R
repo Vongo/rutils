@@ -10,14 +10,8 @@
 #' pie2(saf(round(rnorm(150))))
 pie2 <- function(x, title="") {
 	w <- x[order(-x)]
-	full_names <- sapply(seq(length(w)), function(i) paste0(names(w)[i], " : ", round(100*w[i]/sum(w), 1), "% (", w[i],")"))
+	full_names <- paste0(names(w), " : ", round(100*w/sum(w), 1), "% (", w, ")")
 	pie(w, labels=full_names, main=title)
-}
-
-pie3 <- function(x, title="") {
-	w <- x[order(-x)]
-	full_names <- sapply(seq(length(w)), function(i) paste0(names(w)[i], " : ", round(100*w[i]/sum(w), 1), "%"))
-	pie(w[names(w)%ni% c("À qualifier") & !grepl("NA", names(w))][seq(20)], labels=full_names[names(w)%ni% c("À qualifier") & !grepl("NA", names(w))][seq(20)], main=title)
 }
 
 #' Extended lines chart function
@@ -37,11 +31,11 @@ pie3 <- function(x, title="") {
 #' @examples
 #' data(iris)
 #' lines2(iris[seq(4), seq(4)], ynames=as.character(seq(4)))
-lines2 <- function(y, x=seq(ncol(y)), ynames="", main="", append=F, xlab="", ylab="") {
+lines2 <- function(y, x=seq(ncol(y)), ynames="", main="", append=FALSE, xlab="", ylab="") {
 	stopifnot(is.matrix(y) || is.data.frame(y))
-	ylim <- range(y, na.rm=T)
+	ylim <- range(y, na.rm=TRUE)
 	if (!append) {
-		plot(NA, xlim=c(1, length(x)), ylim=ylim, main=main, xlab=xlab, ylab=ylab)
+		plot(NA, xlim=range(x), ylim=ylim, main=main, xlab=xlab, ylab=ylab)
 	}
 	colors <- rainbow(nrow(y))
 	for (i in seq(nrow(y))) {
@@ -74,7 +68,7 @@ plotly_stacked_area <- function(dt, x, y, group, xname=NULL, yname=NULL, gname=N
 		.[, .(x=get(x), y=get(y), group=get(group))] %>%
 		dcast(x~group, fun.aggregate=sum, value.var="y", fill=NA)
 	p <- dat %>% plotly::plot_ly(x=~x, y=~get(groups[1]), name=groups[1], type="scatter", mode="none", stackgroup="one", fillcolor=colors[1])
-	for (ig in seq(2, length(groups))) {
+	for (ig in seq_len(length(groups))[-1]) {   # empty when there is a single group (seq(2,1) used to iterate backwards)
 		p %<>% plotly::add_trace(data=dat, x=~x, y=dat[[groups[ig]]], name=groups[ig], fillcolor=colors[ig])
 	}
 	xname <- `if`(is.null(xname), x, xname)

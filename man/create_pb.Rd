@@ -6,8 +6,9 @@
 \usage{
 create_pb(
   nb_iter,
-  bar_style = sample(c("simple", "pc"), 1),
-  time_style = sample(c("cd", "end"), 1)
+  bar_style = c("simple", "pc"),
+  time_style = c("cd", "end"),
+  width = NULL
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ create_pb(
 \item{bar_style}{`simple` to have a simple progress bar, or `pc` if you want percentages}
 
 \item{time_style}{`cd` to have a simple countdown, or `end` if you want an estimate of end date/time}
+
+\item{width}{terminal width to draw into; detected from the terminal (falling back to 100) when NULL}
 }
 \description{
 Create an amazingly stylish progress bar.

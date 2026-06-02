@@ -9,7 +9,7 @@ lines2(
   x = seq(ncol(y)),
   ynames = "",
   main = "",
-  append = F,
+  append = FALSE,
   xlab = "",
   ylab = ""
 )
