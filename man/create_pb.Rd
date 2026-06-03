@@ -39,7 +39,7 @@ pb <- create_pb(NB_ITER, bar_style="simple", time_style="cd")
 }}
 
 NB_ITER = 10000
-# NOT RUN
+# NOT RUN
 pb <- create_pb(NB_ITER, bar_style="pc", time_style="end")
 \dontrun{for (i in 1:NB_ITER) {
     update_pb(pb,i)

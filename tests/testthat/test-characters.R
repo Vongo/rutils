@@ -48,7 +48,15 @@ test_that("fetch_safe rejects a non-positive max_attempts", {
 })
 
 test_that("fetch_safe surfaces transport errors rather than returning NULL silently", {
-  expect_warning(res <- fetch_safe("http://localhost:1/", max_attempts = 1, backoff = 0))
+  res <- NULL
+  # two signals: the per-attempt transport error and the final give-up summary
+  expect_warning(
+    expect_warning(
+      res <- fetch_safe("http://localhost:1/", max_attempts = 1, backoff = 0),
+      "Error while fetching"
+    ),
+    "Failed to fetch"
+  )
   expect_null(res)
 })
 

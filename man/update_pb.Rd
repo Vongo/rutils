@@ -7,7 +7,7 @@
 update_pb(pb, index)
 }
 \arguments{
-\item{pb}{progress bar previously created with `create_pb`}
+\item{pb}{progress bar previously created with `create_pb` (or NULL in a non-TTY context, in which case this is a no-op)}
 
 \item{index}{progress level (bounded between 0 and pb`$tot_iter`, that was set by parameter `nb_iter` in `create_pb`)}
 }
@@ -30,7 +30,7 @@ pb <- create_pb(NB_ITER, bar_style="simple", time_style="cd")
 }}
 
 NB_ITER = 10000
-# NOT RUN
+# NOT RUN
 pb <- create_pb(NB_ITER, bar_style="pc", time_style="end")
 \dontrun{for (i in 1:NB_ITER) {
     update_pb(pb,i)
