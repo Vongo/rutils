@@ -1,0 +1,6 @@
+^\.claude$
+^\.remember$
+^CODE_REVIEW\.md$
+^dev$
+^\.git$
+^\.gitignore$

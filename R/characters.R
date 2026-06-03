@@ -1,12 +1,33 @@
 symbols <- c(letters, 0:9, toupper(letters), strsplit("_ ./!,;:?", "")[[1]])
 
-#' Naive encryption function
+# Build the key-dependent substitution alphabet without leaking RNG state.
+# set.seed() mutates the global .Random.seed; we snapshot and restore it so
+# cry()/decry() are side-effect free. Computing the permutation up front (rather
+# than inline as a chartr argument) also makes decry(cry(x, k), k) independent of
+# argument-evaluation order, which the previous inline version got wrong.
+.cipher_perm <- function(key) {
+	has_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+	if (has_seed) {
+		old <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+		on.exit(assign(".Random.seed", old, envir = .GlobalEnv), add = TRUE)
+	} else {
+		on.exit(if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+			rm(list = ".Random.seed", envir = .GlobalEnv), add = TRUE)
+	}
+	set.seed(key)
+	paste(symbols[order(sample.int(length(symbols)))], collapse = "")
+}
+
+#' Naive obfuscation function
 #'
-#' Naive bijective encryption function
-#' @param x character to encrypt
+#' Naive bijective (monoalphabetic substitution) obfuscation. This is NOT
+#' cryptographically secure: it is a trivially breakable substitution over a
+#' fixed alphabet, and any character outside that alphabet passes through
+#' unchanged. Use it for light obfuscation only, never to protect secrets.
+#' @param x character to obfuscate
 #' @param key random seed
 #' @return a character string, the same length as x, but non-human readable
-#' @keywords encryption cipher
+#' @keywords obfuscation cipher substitution
 #' @seealso decry
 #' @export
 #' @examples
@@ -15,17 +36,18 @@ symbols <- c(letters, 0:9, toupper(letters), strsplit("_ ./!,;:?", "")[[1]])
 #' print(decry(a, 1235))
 #' print(decry(a, 1234))
 cry <- function(x, key=123) {
-	set.seed(key)
-	chartr(paste(symbols, collapse=""), paste(symbols[order(sample(seq(length(symbols)), length(symbols)))], collapse=""), x)
+	x <- as.character(x)
+	chartr(paste(symbols, collapse=""), .cipher_perm(key), x)
 }
 
-#' Naive decryption function
+#' Naive de-obfuscation function
 #'
-#' Naive bijective decryption function
-#' @param x character to decrypt
-#' @param key random seed that was used to encrypt
-#' @return a character string, the same length as x, that should be human-readable if you did it right.
-#' @keywords encryption cipher
+#' Reverses \code{\link{cry}} for a given key. See \code{cry} for the security
+#' caveats: this is obfuscation, not encryption.
+#' @param x character to de-obfuscate
+#' @param key random seed that was used with \code{cry}
+#' @return a character string, the same length as x, that should be human-readable if you used the right key.
+#' @keywords obfuscation cipher substitution
 #' @seealso cry
 #' @export
 #' @examples
@@ -34,8 +56,8 @@ cry <- function(x, key=123) {
 #' print(decry(a, 1235))
 #' print(decry(a, 1234))
 decry <- function(x, key=123) {
-	set.seed(key)
-	chartr(paste(symbols[order(sample(seq(length(symbols)), length(symbols)))], collapse=""), paste(symbols, collapse=""), x)
+	x <- as.character(x)
+	chartr(.cipher_perm(key), paste(symbols, collapse=""), x)
 }
 
 #' Character trim function
@@ -48,7 +70,9 @@ decry <- function(x, key=123) {
 #' @examples
 #' trim(" lorem ipsum	")
 trim <- function(s) {
-	sub("^[[:space:]]+", "", sub("[[:space:]]+$", "", s))
+	# \p{Z} (perl) covers Unicode separators incl. NBSP (U+00A0), which
+	# [[:space:]] / \s do not match; \s adds tab/newline/CR.
+	sub("^[\\s\\p{Z}]+", "", sub("[\\s\\p{Z}]+$", "", s, perl=TRUE), perl=TRUE)
 }
 
 #' Title Case (on one word)
@@ -61,7 +85,9 @@ trim <- function(s) {
 #' @examples
 #' titlecase_one("adrian")
 titlecase_one <- function(s) {
-	paste0(toupper(substr(s, 1, 1)), tolower(substr(s, 2, nchar(s))))
+	out <- paste0(toupper(substr(s, 1, 1)), tolower(substr(s, 2, nchar(s))))
+	out[is.na(s)] <- NA_character_   # paste0 would otherwise turn NA into "NANA"
+	out
 }
 
 #' Slug
@@ -76,47 +102,66 @@ titlecase_one <- function(s) {
 #' @examples
 #' slug("La magie d'Aladin")
 slug <- function(x, sep="-") {
-	sub(paste0("[", sep, "]+$"), "", sub(paste0("^[", sep, "]+"), "", gsub(paste0("[", sep, "]+"), sep, gsub("[^a-z^A-Z^0-9]+", "-", trim(tolower(iconv(x, to="ASCII//TRANSLIT")))))))
+	sub(paste0("[", sep, "]+$"), "", sub(paste0("^[", sep, "]+"), "", gsub(paste0("[", sep, "]+"), sep, gsub("[^a-zA-Z0-9]+", "-", trim(tolower(iconv(x, to="ASCII//TRANSLIT")))))))
 }
 
 #' Fetch safe
 #'
-#' Simple wrapper around `curl::curl_fetch_memory` with a few safeguards
+#' Wrapper around \code{curl::curl_fetch_memory} that retries transport failures
+#' with linear backoff, rejects HTTP error responses (status >= 400), and always
+#' signals failure (via the supplied \code{logger} or a \code{warning()}) instead
+#' of silently returning \code{NULL}.
 #' @param url url to fetch
-#' @param max_attempts numeric that represents the maximum number of attempts
+#' @param max_attempts maximum number of attempts (transport errors are retried)
 #' @param handle `curl::handle` to add to the connection
 #' @param logger your custom logger if you want to keep track of potential warnings or errors
+#' @param backoff base seconds slept after a failed transport attempt; the wait grows
+#'   linearly (backoff * attempt_number) and there is no sleep after the final attempt.
+#'   HTTP errors (>= 400) are not retried. 0 disables sleeping.
 #' @return a list that represents the result of the fetch (with headers and content still binarized),
-#' 		or NULL if `url` couldn't be fetched in the specified number of attempts.
+#' 		or NULL if `url` couldn't be fetched successfully in the specified number of attempts.
 #' @keywords curl_fetch_memory curl fetch
 #' @seealso curl::curl_fetch_memory
 #' @export
 #' @examples
+#' \dontrun{
 #' fetch_safe("http://www.qwant.com")
 #' fetch_safe("http://www.qwant.comme")
-fetch_safe <- function(url, max_attempts=3, handle=NULL, logger=NULL) {
-	rurl <- URLencode(url)
-	done <- F
-	retry_count <- 0
+#' }
+fetch_safe <- function(url, max_attempts=3, handle=NULL, logger=NULL, backoff=0.5) {
+	max_attempts <- as.integer(max_attempts)
+	if (is.na(max_attempts) || max_attempts < 1L) stop("fetch_safe(): max_attempts must be a positive integer.")
+	if (!is.numeric(backoff) || length(backoff) != 1L || is.na(backoff) || backoff < 0) stop("fetch_safe(): backoff must be a non-negative number.")
+	emit <- function(level, fmt, ...) {
+		msg <- sprintf(fmt, ...)
+		if (!is.null(logger)) {
+			(if (level == "error") logging::logerror else logging::logwarn)(msg, logger=logger)
+		} else {
+			warning(msg, call.=FALSE)
+		}
+	}
+	rurl <- utils::URLencode(url)
 	result <- NULL
-	while (!done && retry_count < max_attempts) {
-		tryCatch(
-			{
-				result <- if(is.null(handle)) {
-					curl::curl_fetch_memory(rurl)
-				} else {
- 					curl::curl_fetch_memory(rurl, handle=handle)
-				}
-				done <- T
-			},
+	retry_count <- 0L
+	while (is.null(result) && retry_count < max_attempts) {
+		retry_count <- retry_count + 1L
+		fetched <- tryCatch(
+			if (is.null(handle)) curl::curl_fetch_memory(rurl) else curl::curl_fetch_memory(rurl, handle=handle),
 			error=function(e) {
-				if (!is.null(logger)) logging::logwarn("Error while fetching url [%s] (attempt %i): \n\t%s", rurl, retry_count+1, e, logger=logger)
-			},
-			finally={retry_count <- retry_count + 1}
+				emit("warn", "Error while fetching [%s] (attempt %i): %s", rurl, retry_count, conditionMessage(e))
+				NULL
+			}
 		)
+		if (is.null(fetched)) {
+			if (retry_count < max_attempts && backoff > 0) Sys.sleep(backoff * retry_count)
+			next
+		}
+		if (fetched$status_code >= 400L) {       # HTTP errors are deterministic: don't retry, don't double-signal
+			emit("warn", "HTTP %d while fetching [%s].", fetched$status_code, rurl)
+			return(NULL)
+		}
+		result <- fetched
 	}
-	if (is.null(result)) {
-		if (!is.null(logger)) logging::logerror("Error while fetching url [%s] (total attempts : %i).", rurl, retry_count, logger=logger)
-	}
+	if (is.null(result)) emit("error", "Failed to fetch [%s] after %i attempt(s).", rurl, retry_count)
 	result
 }

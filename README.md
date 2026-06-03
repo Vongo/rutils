@@ -47,29 +47,32 @@ Note: all calls of pseudo-random functions will be implicitly preceded by `set.s
 > mondf("2018-01-01", "2019-05-31")
 [1] 16
 ```
-* __Naive encryption__:
+* __Naive obfuscation__ (a substitution cipher — obfuscation, not encryption):
 ```
 > a <- cry("Lorem ipsum sit amet!", key=1337)
 > print(a)
-[1] "ThLci;:Cfei;f:!;Wic!y"
+[1] "o7ktTPrdbDTPbrAPFTtAp"
 > decry(a, key=42)
-[1] "FheqIBGoCJIBCGTBlIqTc"
+[1] "NoA02VEr.m2V.EdVT20d/"
 > decry(a, key=1337)
 [1] "Lorem ipsum sit amet!"
 ```
 * `ws()` allows to print on the whole terminal width (Linux only).
-* __Confusion vector__:
+* __Confusion table__ (relative, via `tabler`):
 ```
-> confusion(sample(c(T,F), 100, rep=T), "a", test=data.frame(a=c(rep(T, 50), rep(F, 50))))
-[1] 22 28 25 25
+> tabler(sample(c(TRUE, FALSE), 100, rep=TRUE), c(rep(TRUE, 50), rep(FALSE, 50)))
+       c
+r       FALSE  TRUE
+  FALSE 53.49 46.51
+  TRUE  47.37 52.63
 ```
-which is a convenient (even though less human readable) equivalent of
+which is a convenient relative equivalent of
 ```
-> table(sample(c(T,F), 100, rep=T), c(rep(T, 50), rep(F, 50)))
+> table(sample(c(TRUE, FALSE), 100, rep=TRUE), c(rep(TRUE, 50), rep(FALSE, 50)))
 
         FALSE TRUE
-  FALSE    22   25
-  TRUE     28   25
+  FALSE    23   20
+  TRUE     27   30
 ```
 * __round_clever__:
 To make more human readable rounds
@@ -89,7 +92,7 @@ Match values to a user-value-based bucket.
 ```
 > saf(bucket2(rnorm(100, 100, 25), c(50, 75, 100, 125, 150)))
  1  2  3  4  5  6
- 4 17 32 34 10  3
+ 1 13 34 35 14  3
 ```
 
 Some other graphical utils are not shown here, such as `pie2` (a pretty pie chart with ordered categories, and percentage displayed aside count), `lines2` (multiple line plots from a matrix), or a terminal progress bar that lets you know how much time is remaining or when you should come back from your coffee break.

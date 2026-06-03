@@ -8,16 +8,21 @@
 #' @examples
 #' round_clever(c(123456789, 12345.6789, 1.2346789))
 round_clever <- function(x) {
-	sapply(x, function(s) {
-	    l <- strsplit(as.character(s), "[.]")[[1]][1]
-	    precision <- if (nchar(l) == 1 || nchar(l) == 2 && grepl("^-", l)) {
-	        r <- strsplit(as.character(s), "[.]")[[1]][2]
-	        min(floor(nchar(r)/2), 2)
-	    } else {
-	        -round(2*nchar(l)/3)
-	    }
-	    round(s, precision)
-	})
+	vapply(x, function(s) {
+		if (!is.finite(s)) return(s)   # NA, NaN, Inf, -Inf pass through unchanged
+		# Count integer digits via log10 (locale-independent, and immune to the
+		# "1e+20" scientific-notation path that broke the old string approach; the
+		# epsilon keeps exact powers of ten on the right side of floor()).
+		nint <- if (abs(s) < 1) 1L else as.integer(floor(log10(abs(s)) + 1e-10) + 1)
+		precision <- if (nint <= 1L) {
+			# sprintf always uses '.' regardless of options(OutDec); cap decimals at 2.
+			dec <- sub("0+$", "", sub("^[^.]*\\.", "", sprintf("%.15f", abs(s))))
+			min(floor(nchar(dec) / 2L), 2L)
+		} else {
+			-round(2 * nint / 3)
+		}
+		round(s, precision)
+	}, numeric(1))
 }
 
 #' Percentile-based bucketing function
@@ -26,35 +31,35 @@ round_clever <- function(x) {
 #' @param v input numeric vector
 #' @param ncut number of buckets to create
 #' @param round.clever should values of v be rounded
-#' @return a numeric vector where each value represents a class/bucket
+#' @return an integer vector where each value represents a class/bucket
 #' @keywords bucket ditribution
 #' @export
 #' @examples
 #' bucket(rnorm(100, 100, 25), 10, TRUE)
-bucket <- function(v, ncut=10, round.clever=F) {
-	splits <- quantile(v, probs=seq(0, 1, by=1/ncut)[2:(ncut+1)])
-    if (round.clever) {
-        splits <- round_clever(splits)
-    }
-	sapply(v, function(e) {
-        min(seq(length(splits))[e<splits], length(splits))
-	})
+bucket <- function(v, ncut=10, round.clever=FALSE) {
+	if (all(is.na(v))) return(rep(NA_integer_, length(v)))
+	splits <- quantile(v, probs=seq(0, 1, by=1/ncut)[2:(ncut+1)], na.rm=TRUE)
+	if (round.clever) {
+		splits <- round_clever(splits)
+	}
+	# findInterval is O(n log k) and NA-safe (NA -> NA), vs the old O(n*k) scan.
+	pmin(findInterval(v, splits) + 1L, length(splits))
 }
 
 #' Threshold-based bucketing function
 #'
 #' Associates each value of a numeric input vector to a threshold-based bucket.
 #' @param v input numeric vector
-#' @param splits should values of v be rounded
-#' @return a numeric vector where each value represents a class/bucket
+#' @param splits sorted numeric thresholds delimiting the buckets (defaults to the deciles of `v`)
+#' @return an integer vector where each value represents a class/bucket
 #' @keywords bucket ditribution
 #' @export
 #' @examples
 #' bucket2(rnorm(100, 100, 25), c(50, 75, 100, 125, 150))
-bucket2 <- function(v, splits=quantile(v, probs=seq(0, 1, by=1/10)[2:(10+1)])) {
-	sapply(v, function(e) {
-        min(seq(length(splits))[e<splits], length(splits)+1)
-	})
+bucket2 <- function(v, splits=quantile(v, probs=seq(0, 1, by=1/10)[2:(10+1)], na.rm=TRUE)) {
+	if (all(is.na(v))) return(rep(NA_integer_, length(v)))   # all-NA data -> all-NA buckets
+	if (all(is.na(splits))) stop("bucket2(): 'splits' has no usable (non-NA) thresholds.")
+	pmin(findInterval(v, splits) + 1L, length(splits) + 1L)
 }
 
 #' Numeric trim
@@ -73,11 +78,17 @@ bucket2 <- function(v, splits=quantile(v, probs=seq(0, 1, by=1/10)[2:(10+1)])) {
 #' summary((minmax(c(rnorm(1000000, 100, 25), rep(NA, 10)), 75, 125, na.value=-10)))
 #' summary((minmax(c(rnorm(1000000, 100, 25), rep(NA, 10)), 75, 125, na.post=-10)))
 minmax <- function(v, min=NA, max=NA, na.value=NA, na.post=NA) {
-	w <- v
-	if (is.na(max)) max <- max(w, na.rm=TRUE)
-	if (is.na(min)) min <- min(w, na.rm=TRUE)
-	if (!is.na(na.value)) w[is.na(w)] <- na.value
-	w <- sapply(sapply(w, min, max), max, min)
-	if (!is.na(na.post)) w[is.na(w)] <- na.post
-	w
+	if (length(v) == 0L) return(v)
+	# All-NA with auto bounds: base::max/min would warn ("no non-missing arguments")
+	# and yield +/-Inf; short-circuit to the NA marker (if any) instead.
+	if (all(is.na(v)) && (is.na(min) || is.na(max))) {
+		if (!is.na(na.value)) v[] <- na.value else if (!is.na(na.post)) v[] <- na.post
+		return(v)
+	}
+	if (is.na(max)) max <- base::max(v, na.rm=TRUE)
+	if (is.na(min)) min <- base::min(v, na.rm=TRUE)
+	if (!is.na(na.value)) v[is.na(v)] <- na.value
+	v <- pmin(pmax(v, min), max)   # vectorized O(n) clamp (replaces nested per-element sapply)
+	if (!is.na(na.post)) v[is.na(v)] <- na.post
+	v
 }

@@ -75,8 +75,8 @@ test_that("update_pb() tolerates a zero-length job (Inf progress)", {
 test_that("update_pb() survives a very narrow terminal (geometry clamp)", {
   # On a real TTY stty reports the actual (wide) width, so force the non-TTY
   # path: ws() then falls back to getOption("width"), pinned here to R's
-  # minimum (10). bar_width - time_width goes negative, so the max(1L, ...) /
-  # min(bar_nb, bar_width) clamps must keep rep()'s counts non-negative.
+  # minimum (10). bar_width - time_width goes negative, so the max(...) /
+  # min(bar_nb, bar_width) clamps must keep strrep()'s counts non-negative.
   skip_if(isatty(stdout()), "stty reports the real width on a TTY")
   old <- options(width = 10)
   on.exit(options(old), add = TRUE)
@@ -92,4 +92,36 @@ test_that("update_pb() survives a non-numeric ws() return (the original crash)",
   local_mocked_bindings(ws = function(...) "Inappropriate ioctl for device")
   pb <- make_fake_pb(5, "simple", "cd")
   expect_no_error(capture.output(for (i in 1:5) update_pb(pb, i)))
+})
+
+# --- Determinism, width caching/validation and render correctness (audit PR) ---
+
+test_that("create_pb has a deterministic default style and does not consume the RNG", {
+  set.seed(1); a <- runif(1)
+  set.seed(1); pb <- create_pb(5, width = 80); b <- runif(1)
+  expect_equal(a, b)                 # RNG stream untouched (was sample()d)
+  expect_equal(pb$bar_style, "simple")
+  expect_equal(pb$time_style, "cd")
+  expect_equal(pb$width, 80)
+})
+
+test_that("update_pb does not crash when index exceeds tot_iter (was strrep negative)", {
+  pb <- create_pb(10, "simple", "cd", width = 80)
+  expect_error(capture.output(update_pb(pb, 15)), NA)
+})
+
+test_that("update_pb does not crash at index 0 (division by zero / Inf)", {
+  pb <- create_pb(10, "pc", "end", width = 80)
+  expect_error(capture.output(update_pb(pb, 0)), NA)
+})
+
+test_that("update_pb renders 100% when index reaches/exceeds tot_iter", {
+  pb <- create_pb(10, "pc", "cd", width = 80)
+  out <- capture.output(update_pb(pb, 15))
+  expect_match(paste(out, collapse = ""), "100%")
+})
+
+test_that("create_pb rejects an invalid explicit width", {
+  expect_error(create_pb(10, width = -5), "positive")
+  expect_error(create_pb(10, width = NA), "positive")
 })
